@@ -23,32 +23,41 @@
     console.log('Request failed', error);
   }
 
-  function getLocality(lat, lng) {
-    fetch(`${API.address.host}${lat},${lng}&${API.address.params}&key=${MAPS_KEY}`)
-      .then(handleResponse)
-      .then(json => {
-        console.log(json.results[0].formatted_address);
-      })
-      .catch(handleError);
-  }
-
-  function getWeather(lat, lng) {
-    fetch(`${API.weather}${lat}&lon=${lng}&appid=${WEATHER_KEY}&units=metric`)
-      .then(handleResponse)
-      .then(json => {
-        console.log(json.main.temp);
-      })
-      .catch(handleError);
-  }
+  // function getLocality(lat, lng) {
+  //   fetch(`${API.address.host}${lat},${lng}&${API.address.params}&key=${MAPS_KEY}`)
+  //     .then(handleResponse)
+  //     .then(json => {
+  //       console.log(json.results[0].formatted_address);
+  //     })
+  //     .catch(handleError);
+  // }
+  //
+  // function getWeather(lat, lng) {
+  //   fetch(`${API.weather}${lat}&lon=${lng}&appid=${WEATHER_KEY}&units=metric`)
+  //     .then(handleResponse)
+  //     .then(json => {
+  //       console.log(json.main.temp);
+  //     })
+  //     .catch(handleError);
+  // }
 
   function init() {
     fetch(`${API.location}${MAPS_KEY}`, {method: 'POST'})
-      .then(handleResponse)
+      .then(res => res.json())
       .then(json => {
         const { lat, lng } = json.location;
+        const urls = [
+          `${API.address.host}${lat},${lng}&${API.address.params}&key=${MAPS_KEY}`,
+          `${API.weather}${lat}&lon=${lng}&appid=${WEATHER_KEY}&units=metric`
+        ];
         console.log(lat, lng);
-        getLocality(lat, lng);
-        getWeather(lat, lng);
+        Promise.all(urls.map(url => fetch(url).then(res => res.json())))
+          .then(responses => {
+            const [ locality, weather ] = responses;
+            console.log(locality, weather);
+          })
+          // Get human-readable address
+          // Get weather data
       })
       .catch(handleError);
   }
