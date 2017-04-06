@@ -1,129 +1,99 @@
 (function localWeather() {
   const API = {
-    location: 'https://www.googleapis.com/geolocation/v1/geolocate?key=',
+    location: 'https://www.googleapis.com/geolocation/v1/geolocate',
     address: {
-      host: 'https://maps.googleapis.com/maps/api/geocode/json?latlng=',
+      host: 'https://maps.googleapis.com/maps/api/geocode/json',
       params: 'result_type=political|sublocality|sublocality_level_2'
     },
-    weather: 'http://api.openweathermap.org/data/2.5/weather?lat='
+    weather: {
+      host: 'http://api.openweathermap.org/data/2.5/weather',
+      icon: 'http://openweathermap.org/img/w/'
+    }
   };
 
   const MAPS_KEY = 'AIzaSyBbGteiBBLBNomNfXMKy_IpMYgaydXC0ZA';
   const WEATHER_KEY = 'b3e04cf774d814fce1dec23f7fea957f';
 
-  function handleResponse(response) {
-    if (response.status >= 200 && response.status < 300) {
-      return Promise.resolve(response.json());
-    } else {
-      return Promise.reject(new Error(response.statusText));
+  // Get coordinates from googleapis
+  fetch(`${API.location}?key=${MAPS_KEY}`, {method: 'POST'})
+    .then(res => res.json())
+    .then(json => {
+      const { lat, lng } = json.location;
+      const urls = [
+        `${API.address.host}?latlng=${lat},${lng}&${API.address.params}&key=${MAPS_KEY}`,
+        `${API.weather.host}?lat=${lat}&lon=${lng}&appid=${WEATHER_KEY}&units=metric`
+      ];
+      // Get human-readable address and weather data
+      Promise.all(urls.map(url => fetch(url).then(res => res.json())))
+        .then(responses => {
+          const [ locality, weather ] = responses;
+          render(locality, weather);
+        })
+    })
+    .catch(handleError);
+
+    function render(localityInfo, weatherInfo) {
+      const weatherWidget = document.querySelector('#weatherWidget');
+      weatherWidget.appendChild(renderWeather(weatherInfo));
+      weatherWidget.appendChild(renderAddress(localityInfo));
     }
-  }
 
-  function handleError(error) {
-    console.log('Request failed', error);
-  }
+    function renderWeather(weatherInfo) {
+      const weatherContainer = document.createElement('p');
+      weatherContainer.className = 'widget-weather';
+      const wind = renderWindConditions(weatherInfo.wind);
 
-  // function getLocality(lat, lng) {
-  //   fetch(`${API.address.host}${lat},${lng}&${API.address.params}&key=${MAPS_KEY}`)
-  //     .then(handleResponse)
-  //     .then(json => {
-  //       console.log(json.results[0].formatted_address);
-  //     })
-  //     .catch(handleError);
-  // }
-  //
-  // function getWeather(lat, lng) {
-  //   fetch(`${API.weather}${lat}&lon=${lng}&appid=${WEATHER_KEY}&units=metric`)
-  //     .then(handleResponse)
-  //     .then(json => {
-  //       console.log(json.main.temp);
-  //     })
-  //     .catch(handleError);
-  // }
+      const image = document.createElement('img');
+      image.src = `${API.weather.icon}${weatherInfo.weather[0].icon}.png`;
+      image.className = 'widget-image';
 
-  function init() {
-    fetch(`${API.location}${MAPS_KEY}`, {method: 'POST'})
-      .then(res => res.json())
-      .then(json => {
-        const { lat, lng } = json.location;
-        const urls = [
-          `${API.address.host}${lat},${lng}&${API.address.params}&key=${MAPS_KEY}`,
-          `${API.weather}${lat}&lon=${lng}&appid=${WEATHER_KEY}&units=metric`
-        ];
-        console.log(lat, lng);
-        Promise.all(urls.map(url => fetch(url).then(res => res.json())))
-          .then(responses => {
-            const [ locality, weather ] = responses;
-            console.log(locality, weather);
-          })
-          // Get human-readable address
-          // Get weather data
-      })
-      .catch(handleError);
-  }
+      const degrees = document.createElement('span');
+      const degreesString = `${Math.round(weatherInfo.main.temp)}&degC`
+      degrees.innerHTML = degreesString;
+      degrees.className = 'widget-degrees';
 
-  init();
+      const elements = [wind, image, degrees];
+      elements.forEach(element => weatherContainer.appendChild(element));
+      return weatherContainer;
+    }
 
+    function renderWindConditions(wind) {
+      const windContainer = document.createElement('span');
+      windContainer.className = 'widget-wind';
+      const windDirection = degToDirection(wind.deg);
+      const windString = `Wind ${wind.speed.toFixed(1)} m/s ${windDirection}`;
+      windContainer.innerHTML = windString;
+      return windContainer;
+    }
+
+    function degToDirection(deg) {
+      if (deg > 22.5 && deg < 67.5) {
+        return 'NE';
+      } else if (deg > 67.5 && deg < 112.5) {
+        return 'E';
+      } else if (deg > 112.5 && deg < 157.5) {
+        return 'SE';
+      } else if (deg > 157.5 && deg < 202.5) {
+        return 'S';
+      } else if (deg > 202.5 && deg < 247.5) {
+        return 'SW';
+      } else if (deg > 247.5 && deg < 292.5) {
+        return 'W';
+      } else if (deg > 292.5 && deg < 337.5) {
+        return 'NW';
+      } else {
+        return 'N';
+      }
+    }
+
+    function renderAddress(localityInfo) {
+      const address = document.createElement('p');
+      address.className = 'widget-address';
+      address.innerHTML = localityInfo.results[0].formatted_address;
+      return address;
+    }
+
+    function handleError(error) {
+      console.log('Request failed', error);
+    }
 })();
-// function httpRequest(method, url) {
-//
-//   return new Promise(function(resolve, reject) {
-//
-//     var xhr = new XMLHttpRequest();
-//     xhr.open(method, url, true);
-//
-//     xhr.onload = function() {
-//       if (this.status == 200) {
-//         resolve(this.response);
-//       } else {
-//         var error = new Error(this.statusText);
-//         error.code = this.status;
-//         reject(error);
-//       }
-//     };
-//
-//     xhr.onerror = function() {
-//       reject(new Error("Network Error"));
-//     };
-//
-//     xhr.send();
-//   });
-//
-// }
-//
-// httpRequest('POST', 'https://www.googleapis.com/geolocation/v1/geolocate?key=AIzaSyBbGteiBBLBNomNfXMKy_IpMYgaydXC0ZA')
-//   .then(
-//     response => {
-//       const coords = JSON.parse(response).location;
-//       const parentDiv = document.getElementById('weather');
-//       getLocality(coords.lat, coords.lng, parentDiv);
-//       getWeather(coords.lat, coords.lng, parentDiv);
-//     },
-//     error => console.log(error)
-//   );
-//
-// function getLocality(lat, lng, parent) {
-//   httpRequest('GET', `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&result_type=political|sublocality|sublocality_level_2&key=AIzaSyBbGteiBBLBNomNfXMKy_IpMYgaydXC0ZA`)
-//     .then(
-//       response => {
-//         const address = document.createElement('p');
-//         const result = JSON.parse(response).results[0].formatted_address;
-//         address.innerHTML = result;
-//         parent.appendChild(address);
-//       },
-//       error => console.log(error)
-//     );
-// }
-//
-// function getWeather(lat, lng, parent) {
-//   httpRequest('GET', `http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=b3e04cf774d814fce1dec23f7fea957f&units=metric`)
-//     .then(
-//       response => {
-//         const weather = document.createElement('p');
-//         const result = JSON.parse(response);
-//         weather.innerHTML = result.main.temp;
-//         parent.appendChild(weather);
-//       },
-//       error => console.log(error)
-//     );
-// }
