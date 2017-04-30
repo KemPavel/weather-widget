@@ -43,16 +43,23 @@
       weatherContainer.className = 'widget-weather';
       const wind = renderWindConditions(weatherInfo.wind);
 
+      const imageContainer = document.createElement('div');
       const image = document.createElement('img');
+      const imageDescription = document.createElement('p');
       image.src = `${API.weather.icon}${weatherInfo.weather[0].icon}.png`;
-      image.className = 'widget-image';
+      imageDescription.innerHTML = weatherInfo.weather[0].description;
+      console.log(weatherInfo.weather[0].description);
+      imageContainer.className = 'widget-image-container';
+      imageContainer.appendChild(image);
+      imageContainer.appendChild(imageDescription);
+
 
       const degrees = document.createElement('span');
       const degreesString = `${Math.round(weatherInfo.main.temp)}&degC`
       degrees.innerHTML = degreesString;
       degrees.className = 'widget-degrees';
 
-      const elements = [wind, image, degrees];
+      const elements = [wind, imageContainer, degrees];
       elements.forEach(element => weatherContainer.appendChild(element));
       return weatherContainer;
     }

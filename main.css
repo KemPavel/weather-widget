@@ -9,27 +9,32 @@ body {
 
 #weatherWidget {
   width: 320px;
+  min-width: 320px;
   border: 3px solid white;
   border-radius: 20px;
   background: rgba(0, 0, 0, 0.2);
   color: #fff;
   text-shadow: 2px 2px 2px black;
-  padding: 10px;
+  padding: 0 10px 10px;
   box-sizing: border-box;
 }
 
 .widget-weather {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
+  margin-bottom: 10px;
 }
 
 .widget-wind {
   font-size: 1.5em;
 }
 
-.widget-image {
-
+.widget-image-container {
+  text-align: center;
+}
+.widget-image-container img {
+  margin-bottom: -25px;
 }
 
 .widget-degrees {
@@ -38,4 +43,7 @@ body {
 
 .widget-address {
   font-size: .6em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
